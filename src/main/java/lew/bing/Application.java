@@ -2,6 +2,7 @@ package lew.bing;
 
 import lew.bing.observable.Observable;
 import lew.bing.observable.Observe;
+import lew.bing.observable.Threads;
 
 /**
  * Created by 刘国兵 on 2017/3/31.
@@ -41,6 +42,22 @@ public class Application {
             System.out.println("haha");
             System.out.println(s);
         });
+        objectObserve.next(55);
+
+        Observable.interval(1000).subscript(h -> {
+            System.out.println(Thread.currentThread().getName() + ": 喜欢你");
+        },null,() -> {
+            System.out.println("完成了");
+        });
+        Observable.timeout(1000).subscript(h -> {
+            System.out.println(Thread.currentThread().getName() + ": 哈哈");
+        },null,() -> System.out.println("over"));
+        try {
+            Thread.sleep(10000);
+            Threads.shutdown();
+        }catch (Exception e) {
+            Threads.shutdown();
+        }
     }
 
 }

@@ -36,6 +36,43 @@ public class Observable<T> {
            c.complete();
         });
     }
+
+    @SuppressWarnings("unchecked")
+    public static Observable interval(long time){
+        //waiting time to send next
+        Observe observe = new Observe();
+        //使用线程池
+        Threads.run(() -> {
+            while (true){
+                try {
+                    Thread.sleep(time);
+                    observe.next(1);
+                } catch (InterruptedException e) {
+                    //线程完成
+                    observe.complete();
+                    break;
+                }
+            }
+
+        });
+        return new Observable(observe);
+    }
+    @SuppressWarnings("unchecked")
+    public static Observable timeout(long time) {
+        Observe observe = new Observe();
+        Threads.run(() -> {
+            try {
+                Thread.sleep(time);
+                observe.next(1);
+                observe.complete();
+            } catch (InterruptedException e) {
+                observe.complete();
+            }
+        });
+        return new Observable(observe);
+
+    }
+
     @SuppressWarnings("unchecked")
     public <R> Observable<R> map(Function<T,R> function) {
         //修正一下，为observe添加observer，并处理它
