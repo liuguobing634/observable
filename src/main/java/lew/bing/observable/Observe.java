@@ -14,6 +14,7 @@ public class Observe<T> extends java.util.Observable {
 
     private final List<Supplier<T>> items = new ArrayList<>();
 
+
     public enum STATUS {
         DONE
     }
@@ -32,7 +33,7 @@ public class Observe<T> extends java.util.Observable {
         super.addObserver(o);
         //当添加了注册源才执行
         for (Supplier<T> item:items) {
-            o.update(this,item.get());
+            o.update(this,item);
         }
         if(complete) {
             o.update(this,STATUS.DONE);
@@ -40,17 +41,14 @@ public class Observe<T> extends java.util.Observable {
 
     }
 
-    //有两个方法，next和complete
+    //有两个方法，next和complete.处理不放到这里
     public synchronized void next(T next){
         if (this.complete) {
             //已经结束
         }else {
             //添加到items中
-            items.add(() -> next);
-            //如果通知源不空，那么就通知
-
-            this.setChanged();
-            this.notifyObservers(next);
+            Supplier<T> s = () -> next;
+            this.nextSupplier(s);
         }
     }
 
@@ -58,9 +56,7 @@ public class Observe<T> extends java.util.Observable {
         if (!this.complete) {
             items.add(next);
             this.setChanged();
-            if (this.countObservers() > 0) {
-                this.notifyObservers(next.get());
-            }
+            this.notifyObservers(next);
         }
     }
 
@@ -69,6 +65,11 @@ public class Observe<T> extends java.util.Observable {
         this.complete = true;
         this.setChanged();
         this.notifyObservers(STATUS.DONE);
+    }
+
+    public synchronized void exception(Exception e) {
+        this.setChanged();
+        this.notifyObservers(e);
     }
 
 }
