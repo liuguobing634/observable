@@ -9,7 +9,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 import java.util.Observer;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -108,16 +108,42 @@ public class Observable<T> {
     public <R> Observable<R> map(Function<T,R> function) {
         //修正一下，为observe添加observer，并处理它
         Observe<R> rObserve = new Observe<>();
-        Observable<R> rObservable = new Observable<>(rObserve);
+        Observable<R> rObservable = new Observable<>(rObserve,this.async);
         Observer observer = (o,arg) -> {
             if (Observe.STATUS.DONE.equals(arg)){
                 rObserve.complete();
             }else if (arg instanceof Exception) {
                 //handler exception给下一个
                 rObserve.exception((Exception) arg);
-            }else if (arg instanceof Supplier) {
-                Supplier<T> _arg = (Supplier<T>) arg;
-                rObserve.nextSupplier(() -> function.apply(_arg.get()));
+            }else if (arg instanceof Callable) {
+                //对callable进行合并
+                //如果异步用CompleteFuture,否则用直接用Executor
+                Callable<T> callable = (Callable<T>) arg;
+                if (async) {
+                    Supplier<T> _arg = () -> {
+                        try {
+                            return callable.call();
+                        } catch (Exception e) {
+                            rObserve.exception(e);
+                        }
+                        return null;
+                    };
+
+                    CompletableFuture.supplyAsync(_arg,Threads.service()).thenAccept(t -> {
+                        if (t!=null) {
+                            rObserve.nextSupplier(() -> function.apply(t));
+                        }
+                    });
+                }else {
+                    Future<T> submit = Threads.submit(callable);
+                    try {
+                        T t = submit.get();
+                        rObserve.next(function.apply(t));
+                    } catch (Exception e) {
+                        rObserve.exception(e);
+                    }
+                }
+
             }
         };
         this.observe.addObserver(observer);

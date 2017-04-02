@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 public class Observe<T> extends java.util.Observable {
 
     private boolean complete;
+    private Exception exception;
 
     private final List<Callable<T>> items = new ArrayList<>();
 
@@ -35,6 +36,9 @@ public class Observe<T> extends java.util.Observable {
         //当添加了注册源才执行
         for (Callable<T> item:items) {
             o.update(this,item);
+        }
+        if(exception != null){
+            o.update(this,exception);
         }
         if(complete) {
             o.update(this,STATUS.DONE);
@@ -69,6 +73,7 @@ public class Observe<T> extends java.util.Observable {
     }
 
     public synchronized void exception(Exception e) {
+        this.exception = e;
         this.setChanged();
         this.notifyObservers(e);
     }

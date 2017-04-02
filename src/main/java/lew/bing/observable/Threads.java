@@ -23,4 +23,8 @@ public class Threads {
         return service.submit(callable);
     }
 
+    public static ExecutorService service(){
+        return service;
+    }
+
 }

@@ -1,6 +1,7 @@
 package lew.bing.observable;
 
 import lew.bing.http.MyHttpException;
+import lew.bing.http.MyHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.junit.Test;
 
@@ -15,11 +16,9 @@ import static org.junit.Assert.*;
 public class ObservableTest {
     @Test
     public void request() throws Exception {
-        Observable.request(new HttpGet("https://www.zhihu.com/xxx"))
-                .subscript(resp -> {
-                    System.out.println(resp.getStatusCode());
-                    System.out.println(resp.getContent());
-                }, e -> {
+        Observable.request(new HttpGet("https://www.zhihu.com"))
+                .map(MyHttpResponse::getContent)
+                .subscript(System.out::println, e -> {
                     if (e instanceof MyHttpException) {
                         System.out.println(((MyHttpException) e).getCode());
                         System.out.println(((MyHttpException) e).getStatus());

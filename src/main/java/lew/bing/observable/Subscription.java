@@ -3,6 +3,7 @@ package lew.bing.observable;
 import java.util.*;
 import java.util.Observable;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -60,30 +61,31 @@ public class Subscription<T>{
                 Callable<T> _arg = (Callable<T>) arg;
                 //如果是异步就异步执行
                 if (async){
-                    Threads.submit(() -> {
-                        System.out.println("test");
+                    //使用CompletableFuture
+                    CompletableFuture.supplyAsync(() -> {
                         try {
                             T call = _arg.call();
-                            handleNext.accept(call);
+                            return call;
                         }catch (Exception e) {
                             if (handleException != null) {
                                 handleException.accept(e);
                             }
+                            return null;
                         }
-
-                        return null;
-                    });
+                    },Threads.service()).thenAcceptAsync(handleNext);
                     //注意这样的话主线程会退掉
                 }else {
-                    Future<T> submit = Threads.submit(_arg);
-                    handleNext.accept(submit.get());
+                    try {
+                        Future<T> submit = Threads.submit(_arg);
+                        handleNext.accept(submit.get());
+                    }catch (Exception e) {
+                        if (handleException != null) {
+                            handleException.accept(e);
+                        }
+                    }
                 }
             }catch (ClassCastException e) {
                 //转换失败就不管
-            }catch (Exception e) {
-                if (handleException != null) {
-                    handleException.accept(e);
-                }
             }
         }
     }
