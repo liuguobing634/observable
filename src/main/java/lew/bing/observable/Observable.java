@@ -1,6 +1,15 @@
 package lew.bing.observable;
 
+import lew.bing.http.MyHttpResponse;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.HttpClientBuilder;
+
 import java.util.Observer;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -11,6 +20,7 @@ import java.util.function.Supplier;
 public class Observable<T> {
 
     private Observe<T> observe;
+    private boolean async;
 
     public Observable(Consumer<Observe<T>> consumer){
         observe = new Observe<>();
@@ -19,6 +29,17 @@ public class Observable<T> {
 
     public Observable(Observe<T> observe) {
         this.observe = observe;
+    }
+
+    public Observable(Consumer<Observe<T>> consumer,boolean async){
+        observe = new Observe<>();
+        consumer.accept(observe);
+        this.async = async;
+    }
+
+    public Observable(Observe<T> observe,boolean async) {
+        this.observe = observe;
+        this.async = async;
     }
 
     public static <T>  Observable<T> of(final T next) {
@@ -73,6 +94,16 @@ public class Observable<T> {
 
     }
 
+    public static Observable<MyHttpResponse> request(HttpUriRequest request) {
+        HttpClient client = HttpClientBuilder.create().build();
+        Observe<MyHttpResponse> entity = new Observe<>();
+        entity.nextSupplier(() -> {
+            HttpResponse execute = client.execute(request);
+            return new MyHttpResponse(execute);
+        });
+        return new Observable<>(entity,true);
+    }
+
     @SuppressWarnings("unchecked")
     public <R> Observable<R> map(Function<T,R> function) {
         //修正一下，为observe添加observer，并处理它
@@ -94,7 +125,7 @@ public class Observable<T> {
     }
 
     public Subscription<T> subscript(Consumer<T> handleNext,Consumer<Exception> handleException,Runnable handleDone){
-        return new Subscription<>(observe,handleNext,handleException,handleDone);
+        return new Subscription<>(observe,handleNext,handleException,handleDone,async);
     }
 
     public Subscription<T> subscript(Consumer<T> handleNext) {

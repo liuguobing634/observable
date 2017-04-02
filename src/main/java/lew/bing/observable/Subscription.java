@@ -2,6 +2,8 @@ package lew.bing.observable;
 
 import java.util.*;
 import java.util.Observable;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -16,6 +18,8 @@ public class Subscription<T>{
     private Runnable handleDone;
     //创建一个内部类实现observer接口
 
+    private boolean async;
+
     private  class _subscription implements Observer {
 
         @Override
@@ -27,10 +31,15 @@ public class Subscription<T>{
     private _subscription subscription;
 
     public Subscription(Observe<T> observe, Consumer<T> handleNext, Consumer<Exception> handleException, Runnable handleDone){
+        this(observe,handleNext,handleException,handleDone,false);
+    }
+
+    public Subscription(Observe<T> observe, Consumer<T> handleNext, Consumer<Exception> handleException, Runnable handleDone,boolean async){
         this.observe = observe;
         this.handleNext = handleNext;
         this.handleException = handleException;
         this.handleDone = handleDone;
+        this.async = async;
         subscription = new _subscription();
         observe.addObserver(subscription);
     }
@@ -46,12 +55,35 @@ public class Subscription<T>{
             if (handleException != null) {
                 handleException.accept((Exception) arg);
             }
-        }else if (arg instanceof Supplier){
+        }else if (arg instanceof Callable){
             try {
-                Supplier<T> _arg = (Supplier<T>) arg;
-                handleNext.accept(_arg.get());
-            }catch (Exception e) {
+                Callable<T> _arg = (Callable<T>) arg;
+                //如果是异步就异步执行
+                if (async){
+                    Threads.submit(() -> {
+                        System.out.println("test");
+                        try {
+                            T call = _arg.call();
+                            handleNext.accept(call);
+                        }catch (Exception e) {
+                            if (handleException != null) {
+                                handleException.accept(e);
+                            }
+                        }
+
+                        return null;
+                    });
+                    //注意这样的话主线程会退掉
+                }else {
+                    Future<T> submit = Threads.submit(_arg);
+                    handleNext.accept(submit.get());
+                }
+            }catch (ClassCastException e) {
                 //转换失败就不管
+            }catch (Exception e) {
+                if (handleException != null) {
+                    handleException.accept(e);
+                }
             }
         }
     }

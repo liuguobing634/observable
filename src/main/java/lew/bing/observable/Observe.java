@@ -3,6 +3,7 @@ package lew.bing.observable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observer;
+import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 /**
@@ -12,7 +13,7 @@ public class Observe<T> extends java.util.Observable {
 
     private boolean complete;
 
-    private final List<Supplier<T>> items = new ArrayList<>();
+    private final List<Callable<T>> items = new ArrayList<>();
 
 
     public enum STATUS {
@@ -23,7 +24,7 @@ public class Observe<T> extends java.util.Observable {
         return complete;
     }
 
-    public List<Supplier<T>> getItems() {
+    public List<Callable<T>> getItems() {
         return items;
     }
 
@@ -32,7 +33,7 @@ public class Observe<T> extends java.util.Observable {
 
         super.addObserver(o);
         //当添加了注册源才执行
-        for (Supplier<T> item:items) {
+        for (Callable<T> item:items) {
             o.update(this,item);
         }
         if(complete) {
@@ -47,12 +48,12 @@ public class Observe<T> extends java.util.Observable {
             //已经结束
         }else {
             //添加到items中
-            Supplier<T> s = () -> next;
+            Callable<T> s = () -> next;
             this.nextSupplier(s);
         }
     }
 
-    public synchronized void nextSupplier(Supplier<T> next) {
+    public synchronized void nextSupplier(Callable<T> next) {
         if (!this.complete) {
             items.add(next);
             this.setChanged();

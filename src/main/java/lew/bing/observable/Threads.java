@@ -1,9 +1,6 @@
 package lew.bing.observable;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Created by 刘国兵 on 2017/4/1.
@@ -20,6 +17,10 @@ public class Threads {
     public static void shutdown(){
         service.shutdown();
         service.shutdownNow();
+    }
+
+    public static <T> Future<T> submit(Callable<T> callable){
+        return service.submit(callable);
     }
 
 }
