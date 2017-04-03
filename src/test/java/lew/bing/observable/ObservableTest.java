@@ -16,15 +16,17 @@ import static org.junit.Assert.*;
 public class ObservableTest {
     @Test
     public void request() throws Exception {
-        Observable.request(new HttpGet("https://www.zhihu.com"))
-                .map(MyHttpResponse::getContent)
+        Observable.request(new HttpGet("https://www.baidu.com"))
                 .subscript(System.out::println, e -> {
                     if (e instanceof MyHttpException) {
                         System.out.println(((MyHttpException) e).getCode());
                         System.out.println(((MyHttpException) e).getStatus());
                     }
                     e.printStackTrace();
-                },null);
+                },() -> {
+                    System.out.println("hello");
+                    System.exit(1);
+                });
         System.out.println("哈哈哈");
         Thread.sleep(10000);
     }

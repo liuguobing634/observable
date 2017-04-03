@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  */
 public class Observable<T> {
 
-    private Observe<T> observe;
+    protected Observe<T> observe;
     private boolean async;
 
     public Observable(Consumer<Observe<T>> consumer){
@@ -99,7 +99,9 @@ public class Observable<T> {
         Observe<MyHttpResponse> entity = new Observe<>();
         entity.nextSupplier(() -> {
             HttpResponse execute = client.execute(request);
-            return new MyHttpResponse(execute);
+            MyHttpResponse myHttpResponse = new MyHttpResponse(execute,entity);
+            entity.complete();
+            return myHttpResponse;
         });
         return new Observable<>(entity,true);
     }
@@ -119,30 +121,11 @@ public class Observable<T> {
                 //对callable进行合并
                 //如果异步用CompleteFuture,否则用直接用Executor
                 Callable<T> callable = (Callable<T>) arg;
-                if (async) {
-                    Supplier<T> _arg = () -> {
-                        try {
-                            return callable.call();
-                        } catch (Exception e) {
-                            rObserve.exception(e);
-                        }
-                        return null;
-                    };
-
-                    CompletableFuture.supplyAsync(_arg,Threads.service()).thenAccept(t -> {
-                        if (t!=null) {
-                            rObserve.nextSupplier(() -> function.apply(t));
-                        }
-                    });
-                }else {
+                rObserve.nextSupplier(() -> {
                     Future<T> submit = Threads.submit(callable);
-                    try {
-                        T t = submit.get();
-                        rObserve.next(function.apply(t));
-                    } catch (Exception e) {
-                        rObserve.exception(e);
-                    }
-                }
+                    T t = submit.get();
+                    return function.apply(t);
+                });
 
             }
         };

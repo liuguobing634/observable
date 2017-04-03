@@ -20,6 +20,7 @@ public class Subscription<T>{
     //创建一个内部类实现observer接口
 
     private boolean async;
+    private CompletableFuture<Void> continueFuture;
 
     private  class _subscription implements Observer {
 
@@ -36,6 +37,8 @@ public class Subscription<T>{
     }
 
     public Subscription(Observe<T> observe, Consumer<T> handleNext, Consumer<Exception> handleException, Runnable handleDone,boolean async){
+        continueFuture = new CompletableFuture<>();
+        continueFuture.complete(null);
         this.observe = observe;
         this.handleNext = handleNext;
         this.handleException = handleException;
@@ -43,16 +46,25 @@ public class Subscription<T>{
         this.async = async;
         subscription = new _subscription();
         observe.addObserver(subscription);
+
     }
 
     @SuppressWarnings("unchecked")
     private void handle(Observable o, Object arg){
+        //全部都用CompletableFuture
         if (Observe.STATUS.DONE.equals(arg)) {
             if (handleDone != null) {
-                handleDone.run();
-                o.deleteObserver(subscription);
+                continueFuture.whenComplete((v,t) -> {
+                    System.out.println("check");
+                    handleDone.run();
+                    o.deleteObserver(subscription);
+                });
+
+
+
             }
         }else if (arg instanceof Exception) {
+
             if (handleException != null) {
                 handleException.accept((Exception) arg);
             }
@@ -62,7 +74,8 @@ public class Subscription<T>{
                 //如果是异步就异步执行
                 if (async){
                     //使用CompletableFuture
-                    CompletableFuture.supplyAsync(() -> {
+                    System.out.println(continueFuture);
+                    continueFuture = continueFuture.thenApplyAsync((v) -> {
                         try {
                             T call = _arg.call();
                             return call;
