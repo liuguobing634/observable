@@ -16,16 +16,16 @@ public class MyHttpResponse {
     private String content;
     private int statusCode;
 
-    private Observe<MyHttpResponse> observe;
 
-    public MyHttpResponse(HttpResponse response,Observe<MyHttpResponse> observe) throws Exception{
+    public MyHttpResponse(HttpResponse response) throws Exception{
         HttpEntity entity = response.getEntity();
         statusCode = response.getStatusLine().getStatusCode();
         try (InputStream is = entity.getContent()) {
             byte[] next = new byte[1024];
             StringBuilder buffer = new StringBuilder();
-            while ((is.read(next)) != -1) {
-                buffer.append(new String(next));
+            int length = 0;
+            while ((length = is.read(next)) != -1) {
+                buffer.append(new String(next,0,length));
             }
             content = buffer.toString();
 //            observe.complete();

@@ -8,74 +8,31 @@ import java.util.function.Supplier;
 
 /**
  * Created by 刘国兵 on 2017/3/31.
+ * 之后将不再继承Observable
+ * 这将只负责发布消息，订阅者不通过它注册
  */
-public class Observe<T> extends java.util.Observable {
-
-    private boolean complete;
-    private Exception exception;
-
-    private final List<Callable<T>> items = new ArrayList<>();
+public class Observe<T>  {
 
 
-    public enum STATUS {
-        DONE
-    }
+    private MessageManage<T> manage;
 
-    public boolean isComplete() {
-        return complete;
-    }
-
-    public List<Callable<T>> getItems() {
-        return items;
-    }
-
-    @Override
-    public synchronized void addObserver(Observer o) {
-
-        super.addObserver(o);
-        //当添加了注册源才执行
-        for (Callable<T> item:items) {
-            o.update(this,item);
-        }
-        if(exception != null){
-            o.update(this,exception);
-        }
-        if(complete) {
-            o.update(this,STATUS.DONE);
-        }
-
+    public Observe(MessageManage<T> manage) {
+        this.manage = manage;
     }
 
     //有两个方法，next和complete.处理不放到这里
     public synchronized void next(T next){
-        if (this.complete) {
-            //已经结束
-        }else {
-            //添加到items中
-            Callable<T> s = () -> next;
-            this.nextSupplier(s);
-        }
+        manage.onMessageReceive(next);
     }
 
-    public synchronized void nextSupplier(Callable<T> next) {
-        if (!this.complete) {
-            items.add(next);
-            this.setChanged();
-            this.notifyObservers(next);
-        }
-    }
 
     public synchronized void complete(){
         //通知注册器
-        this.complete = true;
-        this.setChanged();
-        this.notifyObservers(STATUS.DONE);
+        manage.onDone();
     }
 
     public synchronized void exception(Exception e) {
-        this.exception = e;
-        this.setChanged();
-        this.notifyObservers(e);
+        manage.onException(e);
     }
 
 }

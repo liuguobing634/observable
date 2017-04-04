@@ -23,6 +23,10 @@ public class Threads {
         return service.submit(callable);
     }
 
+    public static  Future<?> submit(Runnable runnable){
+        return service.submit(runnable);
+    }
+
     public static ExecutorService service(){
         return service;
     }

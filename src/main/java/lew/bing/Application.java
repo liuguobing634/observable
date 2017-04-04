@@ -3,6 +3,9 @@ package lew.bing;
 import lew.bing.observable.Observable;
 import lew.bing.observable.Observe;
 import lew.bing.observable.Threads;
+import org.apache.http.client.methods.HttpGet;
+
+import java.time.LocalDateTime;
 
 /**
  * Created by 刘国兵 on 2017/3/31.
@@ -10,54 +13,22 @@ import lew.bing.observable.Threads;
 public class Application {
 
     public static void main(String[] args) throws InterruptedException {
-        Observable<Integer> from = Observable.from(1, 2, 3, 4, 5);
-        from.subscript(n -> {
-            System.out.println(n);
-        });
-//        Thread.sleep(2000);
-        from.subscript(n -> {
-            System.out.println(n);
-        },null,() -> {
-            System.out.println("完成");
-        });
-        from.map(c -> {
-//            System.out.println(c);
-            return c+2;
-        }).subscript(n -> {
-            System.out.println(n);
-        });
-
-        Observe<Integer> objectObserve = new Observe<>();
-        Observable<Integer> integerObservable = new Observable<>(objectObserve);
-        integerObservable.subscript(s -> {
+        Observable.of(2).map(n -> {
+            Thread.sleep(5000);
+            System.out.println(Thread.currentThread().getName() +": " + n);
+            return n+3;
+        }).subscript(s -> {
             System.out.println(s);
-        });
-        objectObserve.next(12);
-        objectObserve.next(23);
-        objectObserve.nextSupplier(() -> {
-            System.out.println("hello");
-            return 33;
-        });
-        integerObservable.map(s -> s+1).subscript(s -> {
-            System.out.println("haha");
-            System.out.println(s);
-        });
-        objectObserve.next(55);
-
-        Observable.interval(1000).subscript(h -> {
-            System.out.println(Thread.currentThread().getName() + ": 喜欢你");
-        },null,() -> {
-            System.out.println("完成了");
-        });
-        Observable.timeout(1000).subscript(h -> {
-            System.out.println(Thread.currentThread().getName() + ": 哈哈");
-        },null,() -> System.out.println("over"));
-        try {
-            Thread.sleep(10000);
+        },null,() ->{
             Threads.shutdown();
-        }catch (Exception e) {
-            Threads.shutdown();
-        }
+        });
+        Observable.httpRequest(new HttpGet("http://www.baidu.com"))
+                .subscript(n -> {
+                    System.out.println(n.getContent());
+                },null,null);
+        Observable.interval(300).subscript(v -> {
+            System.out.println(LocalDateTime.now());
+        });
     }
 
 }
